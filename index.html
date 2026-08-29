@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UD 드로잉 배틀 — 그려서 맞혀라!</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#22211C; --blue:#2450D8; --yellow:#FFD23F;
+    --red:#E4572E; --line:#D8D4C8; --gray:#8a8577;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; min-height:100vh; background:var(--paper); color:var(--ink);
+    font-family:'Trebuchet MS','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:28px 28px; padding:20px 14px 60px;
+  }
+  .wrap{max-width:460px;margin:0 auto;}
+  .wrap.wide{max-width:640px;}
+  .card{background:#fff;border:2px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--ink);padding:20px;}
+  .badge{display:inline-block;background:var(--yellow);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);
+    padding:4px 14px;border-radius:8px;font-weight:800;font-size:13px;letter-spacing:2px;}
+  h1{margin:10px 0 2px;font-size:26px;font-weight:900;text-align:center;}
+  .sub{font-size:13px;color:#6b675c;text-align:center;}
+  .head{text-align:center;margin-bottom:18px;}
+  label{display:block;font-weight:800;font-size:13px;margin:12px 0 4px;}
+  input{width:100%;padding:10px 12px;font-size:15px;border:2px solid var(--ink);border-radius:8px;background:#fff;font-family:inherit;}
+  .btn{width:100%;padding:13px 0;font-size:16px;font-weight:900;font-family:inherit;border:2px solid var(--ink);
+    border-radius:10px;box-shadow:3px 3px 0 var(--ink);cursor:pointer;margin-top:12px;}
+  .btn.blue{background:var(--blue);color:#fff;} .btn.red{background:var(--red);color:#fff;}
+  .btn.dark{background:var(--ink);color:#fff;} .btn.white{background:#fff;color:var(--ink);}
+  .tool{padding:7px 10px;font-size:13px;font-weight:700;font-family:inherit;background:#fff;
+    border:2px solid var(--ink);border-radius:8px;cursor:pointer;}
+  .tool.on{background:var(--yellow);}
+  .tab{padding:8px 14px;font-size:14px;font-weight:800;font-family:inherit;background:#fff;color:var(--ink);
+    border:2px solid var(--ink);border-radius:10px;cursor:pointer;}
+  .tab.on{background:var(--ink);color:#fff;}
+  .err{color:var(--red);font-size:13px;margin-top:8px;line-height:1.5;}
+  .note{font-size:12px;color:var(--gray);margin-top:12px;line-height:1.5;}
+  .hidden{display:none !important;}
+  .diffbtn{flex:1;padding:10px 4px;border-radius:10px;cursor:pointer;font-family:inherit;
+    border:2px solid var(--ink);background:#fff;color:var(--ink);}
+  .diffbtn .big{font-weight:900;font-size:18px;} .diffbtn .sm{font-size:11px;} .diffbtn .smb{font-size:11px;font-weight:800;}
+  .diffbtn.on{color:#fff;box-shadow:3px 3px 0 var(--ink);}
+  .row{display:flex;gap:8px;} .rowwrap{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .board-row{display:flex;justify-content:space-between;padding:7px 10px;border-radius:8px;margin-bottom:4px;
+    font-size:14px;border:1.5px solid transparent;}
+  .board-row.alt{background:#FAF9F4;} .board-row.me{background:#FFF3C4;border-color:#E4B90F;}
+  .board-row b{font-weight:800;}
+  canvas{width:100%;aspect-ratio:1/1;touch-action:none;border-radius:8px;border:1.5px dashed var(--line);display:block;cursor:crosshair;background:#fff;}
+  .swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid var(--line);padding:0;}
+  .swatch.on{border:3px solid var(--ink);box-shadow:0 0 0 2px #fff inset;}
+  .wbtn{width:30px;height:30px;border-radius:8px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;background:#fff;border:2px solid var(--ink);}
+  .wbtn.on{background:var(--yellow);} .wbtn .dot{border-radius:50%;background:var(--ink);}
+  .timer{font-weight:900;font-size:20px;padding:2px 12px;border-radius:8px;border:2px solid var(--ink);background:#fff;}
+  .timer.danger{border-color:var(--red);background:var(--red);color:#fff;}
+  .stamp{display:inline-block;transform:rotate(-6deg);border:4px solid var(--red);color:var(--red);
+    border-radius:12px;padding:6px 22px;margin:10px 0;font-size:46px;font-weight:900;}
+  .linkbtn{background:none;border:none;font-size:12px;color:var(--gray);text-decoration:underline;cursor:pointer;font-family:inherit;}
+  .pwwrap{position:relative;}
+  .pwwrap input{color:transparent;caret-color:var(--ink);text-align:center;font-size:18px;}
+  .pwdots{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:18px;letter-spacing:8px;}
+  .pwdots .ph{color:#b5b0a2;letter-spacing:0;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="head">
+    <div class="badge">UD DRAWING BATTLE</div>
+    <h1>그려서 맞혀라!</h1>
+    <div class="sub">유니버설 디자인 사례를 그림으로 — AI가 채점합니다</div>
+  </div>
+
+  <!-- 학생 입장 -->
+  <div id="screen-join" class="card">
+    <label>게임 코드</label><input id="in-code" placeholder="선생님이 알려준 코드">
+    <label>학번</label><input id="in-sid" placeholder="예: 20315">
+    <label>이름</label><input id="in-name" placeholder="예: 김하늘">
+    <div class="err hidden" id="join-err"></div>
+    <button class="btn blue" onclick="join()">게임 입장</button>
+    <div class="note">난이도와 제한시간은 선생님이 정한 설정을 자동으로 따라갑니다. 시간이 끝나면 자동 제출 · 이름과 점수는 같은 코드의 참가자 모두에게 공개됩니다.</div>
+    <div id="solo-offer" class="hidden" style="margin-top:14px;border-top:1.5px dashed var(--line);padding-top:12px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:6px;">저장 오류가 계속되나요? 순위 없이 혼자 연습할 수 있어요.</div>
+      <div class="row">
+        <button class="tool" style="flex:1;" onclick="startSolo('easy')">연습: 하 (10문제)</button>
+        <button class="tool" style="flex:1;" onclick="startSolo('mid')">연습: 중 (7문제)</button>
+        <button class="tool" style="flex:1;" onclick="startSolo('hard')">연습: 상 (5문제)</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="linkbtn" onclick="gotoLock()">선생님이신가요? 게임 만들기 · 순위 화면</button>
+    </div>
+  </div>
+
+  <!-- 교사 잠금 -->
+  <div id="screen-lock" class="hidden">
+    <button class="tool" style="margin-bottom:12px;" onclick="show('join')">← 학생 화면으로</button>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:34px;">🔒</div>
+      <div style="font-weight:900;font-size:17px;margin:6px 0 12px;">선생님 전용 화면입니다</div>
+      <div class="pwwrap">
+        <input id="in-pw" type="password" inputmode="numeric" maxlength="8" autocomplete="off"
+          oninput="renderPwDots()" onkeydown="if(event.key==='Enter')unlock()">
+        <div class="pwdots" id="pw-dots"><span class="ph">비밀번호 입력</span></div>
+      </div>
+      <div class="err hidden" id="lock-err"></div>
+      <button class="btn dark" onclick="unlock()">확인</button>
+    </div>
+  </div>
+
+  <!-- 교사 설정 -->
+  <div id="screen-setup" class="hidden">
+    <button class="tool" style="margin-bottom:12px;" onclick="show('join')">← 학생 화면으로</button>
+    <div class="card">
+      <label>게임 코드 정하기</label><input id="t-code" placeholder="예: 2-3반">
+      <label>이 게임의 난이도 (학생 전원에게 적용)</label>
+      <div class="row" id="diff-btns"></div>
+      <div class="err hidden" id="setup-err"></div>
+      <button class="btn blue" onclick="createGame()">게임 만들기</button>
+      <button class="btn white" onclick="openDash()">이미 만든 게임 순위 화면 열기</button>
+      <div class="note">만든 뒤 학생들에게 게임 코드만 알려 주세요. 학생은 코드 입력만으로 이 난이도로 입장합니다. 같은 코드를 다시 만들면 설정이 바뀌니, 새 게임은 새 코드를 권장해요.</div>
+    </div>
+  </div>
+
+  <!-- 교사 대시보드 -->
+  <div id="screen-dash" class="hidden">
+    <div class="card" style="background:var(--yellow);text-align:center;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:800;">게임 코드</div>
+      <div style="font-size:32px;font-weight:900;letter-spacing:2px;" id="dash-code"></div>
+      <div style="font-size:13px;" id="dash-info"></div>
+    </div>
+    <div class="rowwrap" style="margin-bottom:10px;" id="dash-tabs"></div>
+    <div class="card" style="padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-weight:900;font-size:15px;" id="dash-title"></div>
+        <button class="tool" onclick="refreshDash()" id="dash-refresh">🔄 새로고침</button>
+      </div>
+      <div id="dash-board"></div>
+    </div>
+    <div class="note" style="text-align:center;" id="dash-count"></div>
+  </div>
+
+  <!-- 그리기 -->
+  <div id="screen-play" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-weight:900;font-size:15px;" id="play-round"></div>
+      <div class="timer" id="play-timer">⏱ 0:00</div>
+    </div>
+    <div class="card" style="background:var(--yellow);padding:14px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:1px;">제시어</div>
+      <div style="font-size:24px;font-weight:900;" id="play-word"></div>
+      <div style="font-size:14px;" id="play-hint"></div>
+    </div>
+    <div class="card" style="padding:8px;">
+      <canvas id="cv" width="512" height="512"></canvas>
+      <div class="rowwrap" style="margin-top:8px;">
+        <button class="tool on" id="btn-pen" onclick="setTool('pen')">✏️ 펜</button>
+        <button class="tool" id="btn-eraser" onclick="setTool('eraser')">🧽 지우개</button>
+        <button class="tool" onclick="undoStroke()">↩️ 취소</button>
+        <button class="tool" onclick="clearCanvas()">🗑️ 지우기</button>
+      </div>
+      <div class="rowwrap" style="margin-top:8px;">
+        <span id="colors" class="rowwrap"></span>
+        <span style="width:1px;height:22px;background:var(--line);"></span>
+        <span id="widths" class="rowwrap"></span>
+      </div>
+    </div>
+    <div class="err hidden" id="play-err"></div>
+    <button class="btn red" onclick="submitDrawing(false)">제출하고 채점받기</button>
+  </div>
+
+  <!-- 채점 중 -->
+  <div id="screen-judging" class="hidden">
+    <div class="card" style="padding:40px;text-align:center;">
+      <div style="font-size:44px;">🧐</div>
+      <div style="font-weight:900;font-size:18px;margin-top:8px;">AI 심사위원이 그림을 보는 중…</div>
+      <div style="font-size:13px;color:#6b675c;margin-top:4px;">몇 초만 기다려 주세요</div>
+    </div>
+  </div>
+
+  <!-- 라운드 결과 -->
+  <div id="screen-result" class="hidden">
+    <div class="card" style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:800;letter-spacing:1px;" id="res-label"></div>
+      <div class="stamp" id="res-score"></div>
+      <div style="font-size:15px;line-height:1.5;" id="res-comment"></div>
+    </div>
+    <div class="card" style="padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-weight:900;font-size:15px;" id="res-board-title"></div>
+        <button class="tool" onclick="refreshResultBoard()" id="res-refresh">🔄 새로고침</button>
+      </div>
+      <div id="res-board"></div>
+    </div>
+    <button class="btn blue" id="btn-next" onclick="nextRound()"></button>
+  </div>
+
+  <!-- 최종 -->
+  <div id="screen-final" class="hidden">
+    <div class="card" style="background:var(--yellow);text-align:center;margin-bottom:12px;">
+      <div style="font-size:34px;">🏆</div>
+      <div style="font-weight:900;font-size:20px;">최종 결과</div>
+      <div style="font-size:13px;margin-top:2px;" id="final-my"></div>
+    </div>
+    <div class="card" style="padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-weight:900;font-size:15px;">누적 점수 순위</div>
+        <button class="tool" onclick="refreshFinalBoard()" id="final-refresh">🔄 새로고침</button>
+      </div>
+      <div id="final-board"></div>
+    </div>
+    <div class="note" style="text-align:center;">아직 제출 중인 친구가 있다면 새로고침을 눌러 순위를 갱신하세요.</div>
+  </div>
+</div>
+
+<script>
+// ───────── 데이터 ─────────
+const POOLS = {
+  easy: [
+    { en:"Ramp", ko:"경사로", hint:"계단 옆 비스듬한 길" },
+    { en:"Automatic Door", ko:"자동문", hint:"다가가면 스르륵" },
+    { en:"Elevator", ko:"엘리베이터", hint:"낮은 버튼, 넓은 문" },
+    { en:"Scissors", ko:"양손잡이 가위", hint:"왼손도 오른손도 OK" },
+    { en:"Traffic Signal", ko:"신호등", hint:"횡단보도 앞" },
+    { en:"Handrail", ko:"안전 손잡이", hint:"벽에 붙은 잡는 봉" },
+    { en:"Wheelchair", ko:"휠체어", hint:"바퀴 달린 의자" },
+    { en:"Glasses", ko:"안경", hint:"잘 보이게 돕는 도구" },
+    { en:"Magnifier", ko:"돋보기", hint:"작은 글씨를 크게" },
+    { en:"White Cane", ko:"흰 지팡이", hint:"길을 알려 주는 지팡이" },
+    { en:"Stroller", ko:"유모차", hint:"경사로가 반가운 이유" },
+  ],
+  mid: [
+    { en:"Low-floor Bus", ko:"저상버스", hint:"계단 없는 버스" },
+    { en:"Tactile Paving", ko:"점자 블록", hint:"노란 울퉁불퉁 보도블록" },
+    { en:"Lever Door Handle", ko:"레버형 문손잡이", hint:"돌리지 않고 내려서 여는" },
+    { en:"Pictogram Sign", ko:"그림 표지판", hint:"글자 없이 그림으로" },
+    { en:"Curb Cut", ko:"턱 낮춘 보도", hint:"인도와 차도 사이 완만한 턱" },
+    { en:"Priority Seat", ko:"교통약자 배려석", hint:"버스·지하철의 그 자리" },
+    { en:"Wide Restroom Stall", ko:"넓은 화장실 칸", hint:"휠체어가 들어가는" },
+    { en:"Platform Screen Door", ko:"스크린도어", hint:"지하철 승강장의 안전문" },
+    { en:"Countdown Signal", ko:"잔여시간 표시 신호등", hint:"몇 초 남았는지 보여 주는" },
+  ],
+  hard: [
+    { en:"Sound Traffic Signal", ko:"음향 신호등", hint:"소리로 알려 주는 횡단보도" },
+    { en:"Shampoo Bumps", ko:"샴푸 돌기", hint:"린스와 구분되는 오돌토돌" },
+    { en:"Subtitles", ko:"자막", hint:"소리를 눈으로 보는 방법" },
+    { en:"Undo (Ctrl+Z)", ko:"실행 취소", hint:"실수를 되돌리는 기능" },
+    { en:"Kiosk Large-text Mode", ko:"키오스크 큰글씨 모드", hint:"화면 속 배려" },
+    { en:"Multilingual Sign", ko:"다국어 안내판", hint:"여러 언어가 함께" },
+    { en:"Braille Button", ko:"점자 버튼", hint:"만져서 읽는 글자" },
+  ],
+};
+const DIFFS = [
+  { id:"easy", label:"하", desc:"그리기 쉬운 사물", time:60, rounds:10, color:"#2E933C" },
+  { id:"mid", label:"중", desc:"대표 UD 사례", time:90, rounds:7, color:"#2450D8" },
+  { id:"hard", label:"상", desc:"추상적 개념까지", time:120, rounds:5, color:"#E4572E" },
+];
+const COLORS = ["#22211C","#7A7468","#8B4A2B","#D62828","#F77F00","#E8B500","#2E933C","#7FC24A","#2450D8","#56B8E6","#7B4FD8","#E85D9E"];
+const WIDTHS = [4,7,14];
+const TEACHER_PW = "1220";
+
+/* ══════════════════════════════════════════════════════════
+   ★ 설정 (이 두 줄만 채우면 됩니다) ★
+   1) FIREBASE_DB_URL : Firebase Realtime Database 주소
+      예: "https://ud-game-default-rtdb.asia-southeast1.firebasedatabase.app"
+   2) GEMINI_API_KEY  : Google AI Studio에서 발급한 API 키
+      예: "AIzaSy..."
+   ══════════════════════════════════════════════════════════ */
+const CONFIG = {
+  FIREBASE_DB_URL: "",   // ← 여기에 붙여넣기
+  GEMINI_API_KEY: "",    // ← 여기에 붙여넣기
+  GEMINI_MODEL: "gemini-2.5-flash",
+};
+
+const NO_STORAGE_MSG = "저장소 설정이 비어 있어요. 파일 상단 CONFIG의 FIREBASE_DB_URL을 채워 주세요.";
+const diffOf = id => DIFFS.find(d => d.id === id);
+const storageReady = () => !!CONFIG.FIREBASE_DB_URL;
+const judgeReady = () => !!CONFIG.GEMINI_API_KEY;
+// Firebase 경로에 못 쓰는 문자(. # $ [ ] /) 정리
+const safe = s => String(s).replace(/[.#$\[\]\/\s]/g, "_");
+const fbUrl = path => CONFIG.FIREBASE_DB_URL.replace(/\/+$/, "") + "/" + path + ".json";
+async function fbGet(path) {
+  const r = await fetch(fbUrl(path));
+  if (!r.ok) throw new Error("Firebase 읽기 실패 " + r.status);
+  return r.json(); // 없으면 null
+}
+async function fbPut(path, obj) {
+  const r = await fetch(fbUrl(path), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) });
+  if (!r.ok) throw new Error("Firebase 저장 실패 " + r.status);
+  return r.json();
+}
+const cfgPath = c => `udgame/${safe(c)}/cfg`;
+const pPath = (c,s) => `udgame/${safe(c)}/players/${safe(s)}`;
+const playersPath = c => `udgame/${safe(c)}/players`;
+
+function wordsFor(code, diff) {
+  let h = 0;
+  for (const ch of code + diff) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const arr = [...POOLS[diff]];
+  for (let i = arr.length - 1; i > 0; i--) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const j = h % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, diffOf(diff).rounds);
+}
+
+// ───────── 상태 ─────────
+let code = "", sid = "", name = "", diff = "mid";
+let words = [], round = 1, myScores = {}, board = [];
+let timeLeft = 0, timerIv = null, submitting = false;
+let tool = "pen", penColor = COLORS[0], penWidth = 7, strokes = 0;
+const history = [];
+let dashView = 0;
+let solo = false;
+
+// ───────── 화면 전환 ─────────
+const SCREENS = ["join","lock","setup","dash","play","judging","result","final"];
+function show(id) {
+  SCREENS.forEach(s => document.getElementById("screen-"+s).classList.toggle("hidden", s !== id));
+  document.getElementById("wrap").classList.toggle("wide", id === "dash");
+  if (id !== "play" && timerIv) { clearInterval(timerIv); timerIv = null; }
+}
+function err(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg || "";
+  el.classList.toggle("hidden", !msg);
+}
+const esc = s => String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+// ───────── 교사 잠금 ─────────
+function gotoLock() {
+  document.getElementById("in-pw").value = "";
+  renderPwDots(); err("lock-err","");
+  show("lock");
+}
+function renderPwDots() {
+  const v = document.getElementById("in-pw").value;
+  document.getElementById("pw-dots").innerHTML = v.length
+    ? "●".repeat(v.length) : '<span class="ph">비밀번호 입력</span>';
+  err("lock-err","");
+}
+function unlock() {
+  if (document.getElementById("in-pw").value.trim() === TEACHER_PW) {
+    err("setup-err",""); renderDiffBtns(); show("setup");
+  } else err("lock-err","비밀번호가 틀렸어요.");
+}
+
+// ───────── 교사 설정 ─────────
+function renderDiffBtns() {
+  document.getElementById("diff-btns").innerHTML = DIFFS.map(d => `
+    <button class="diffbtn ${diff===d.id?'on':''}" style="${diff===d.id?`background:${d.color};`:''}"
+      onclick="diff='${d.id}';renderDiffBtns()">
+      <div class="big">${d.label}</div><div class="sm">${d.desc}</div>
+      <div class="smb">${d.rounds}문제 · ⏱ ${d.time}초</div>
+    </button>`).join("");
+}
+async function createGame() {
+  const c = document.getElementById("t-code").value.trim();
+  if (!c) return err("setup-err","게임 코드를 정해 주세요. (예: 2-3반)");
+  if (!storageReady()) return err("setup-err", NO_STORAGE_MSG);
+  err("setup-err","");
+  let lastErr = null;
+  for (let a = 0; a < 2; a++) {
+    try {
+      await fbPut(cfgPath(c), { diff, createdAt: Date.now() });
+      code = c;
+      await fetchBoard();
+      dashView = 0; renderDash(); show("dash");
+      return;
+    } catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 700)); }
+  }
+  err("setup-err", `게임 생성에 실패했어요. (${lastErr?.message || lastErr}) Firebase 주소와 데이터베이스 규칙(.read/.write: true)을 확인해 주세요.`);
+}
+async function openDash() {
+  const c = document.getElementById("t-code").value.trim();
+  if (!c) return err("setup-err","게임 코드를 입력하세요.");
+  if (!storageReady()) return err("setup-err", NO_STORAGE_MSG);
+  let cfg = null;
+  try { cfg = await fbGet(cfgPath(c)); } catch {}
+  if (!cfg) return err("setup-err","이 코드로 만들어진 게임이 없어요.");
+  err("setup-err","");
+  code = c; diff = cfg.diff;
+  await fetchBoard();
+  dashView = 0; renderDash(); show("dash");
+}
+
+// ───────── 순위 ─────────
+async function fetchBoard() {
+  if (solo) {
+    board = [{ sid: "me", name: "나 (연습)", scores: myScores, updatedAt: 0 }];
+    return;
+  }
+  try {
+    const obj = await fbGet(playersPath(code));
+    board = obj ? Object.values(obj) : [];
+  } catch { board = []; }
+}
+const totalOf = p => Object.values(p.scores || {}).reduce((a,b) => a + (b.score||0), 0);
+const medal = i => i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}위`;
+function roundRows(r) {
+  return board.filter(p => p.scores?.[r])
+    .sort((a,b) => b.scores[r].score - a.scores[r].score || a.updatedAt - b.updatedAt)
+    .map((p,i) => ({ rank: medal(i), nm: p.name, sc: `${p.scores[r].score}점`, me: p.sid === sid }));
+}
+function totalRows() {
+  return [...board].sort((a,b) => totalOf(b) - totalOf(a) || a.updatedAt - b.updatedAt)
+    .map((p,i) => ({ rank: medal(i), nm: p.name, sc: `${totalOf(p)}점 (${Object.keys(p.scores||{}).length}R)`, me: p.sid === sid }));
+}
+function boardHTML(rows) {
+  if (!rows.length) return '<div style="font-size:13px;color:var(--gray);">아직 제출한 사람이 없어요.</div>';
+  return rows.map((r,i) => `
+    <div class="board-row ${r.me?'me':i%2?'alt':''}">
+      <b>${esc(r.rank)} ${esc(r.nm)}${r.me?" (나)":""}</b><b style="white-space:nowrap;margin-left:8px;">${esc(r.sc)}</b>
+    </div>`).join("");
+}
+
+// ───────── 대시보드 ─────────
+function renderDash() {
+  const d = diffOf(diff);
+  document.getElementById("dash-code").textContent = code;
+  document.getElementById("dash-info").textContent = `난이도 ${d.label} · 라운드당 ${d.time}초 · 총 ${d.rounds}라운드`;
+  let tabs = `<button class="tab ${dashView===0?'on':''}" onclick="dashView=0;renderDash()">🏆 누적</button>`;
+  for (let r = 1; r <= d.rounds; r++)
+    tabs += `<button class="tab ${dashView===r?'on':''}" onclick="dashView=${r};renderDash()">R${r}</button>`;
+  document.getElementById("dash-tabs").innerHTML = tabs;
+  document.getElementById("dash-title").textContent = dashView===0 ? "누적 점수 순위" : `ROUND ${dashView} 순위`;
+  document.getElementById("dash-board").innerHTML = boardHTML(dashView===0 ? totalRows() : roundRows(dashView));
+  document.getElementById("dash-count").textContent = `이 화면을 교실 TV에 띄워 두고 새로고침을 눌러 순위를 갱신하세요. 참가 인원 ${board.length}명`;
+}
+async function refreshDash() {
+  const b = document.getElementById("dash-refresh"); b.textContent = "…";
+  await fetchBoard(); renderDash(); b.textContent = "🔄 새로고침";
+}
+
+// ───────── 연습 모드 ─────────
+function startSolo(d) {
+  solo = true;
+  code = "practice"; sid = "me"; name = "나"; diff = d;
+  words = wordsFor("practice-" + Date.now(), d);
+  myScores = {}; board = [];
+  round = 1;
+  startRound();
+}
+
+// ───────── 학생 입장 ─────────
+function showSoloOffer() {
+  document.getElementById("solo-offer").classList.remove("hidden");
+}
+async function join() {
+  solo = false;
+  const c = document.getElementById("in-code").value.trim();
+  const s = document.getElementById("in-sid").value.trim();
+  const n = document.getElementById("in-name").value.trim();
+  if (!c || !s || !n) return err("join-err","게임 코드, 학번, 이름을 모두 입력하세요.");
+  if (!storageReady()) { showSoloOffer(); return err("join-err", NO_STORAGE_MSG); }
+  let cfg = null;
+  try { cfg = await fbGet(cfgPath(c)); } catch {}
+  if (!cfg?.diff) { showSoloOffer(); return err("join-err","이 코드로 만들어진 게임이 없어요. 코드를 확인하거나, 저장 오류라면 아래 연습 모드를 이용하세요."); }
+  err("join-err","");
+  code = c; sid = s; name = n; diff = cfg.diff;
+  words = wordsFor(c, diff);
+  myScores = {};
+  try {
+    const rec = await fbGet(pPath(c, s));
+    if (rec) myScores = rec.scores || {};
+  } catch {}
+  const R = diffOf(diff).rounds;
+  let next = null;
+  for (let i = 1; i <= R; i++) if (!myScores[i]) { next = i; break; }
+  if (!next) { await fetchBoard(); renderFinal(); show("final"); }
+  else { round = next; startRound(); }
+}
+async function saveMe() {
+  if (solo) return;
+  try {
+    await fbPut(pPath(code, sid), { sid, name, scores: myScores, updatedAt: Date.now() });
+  } catch (e) { console.error(e); }
+}
+
+// ───────── 라운드 진행 ─────────
+function startRound() {
+  const d = diffOf(diff), w = words[round-1];
+  submitting = false;
+  document.getElementById("play-round").innerHTML =
+    `ROUND ${round} / ${d.rounds} <span style="font-size:12px;color:${d.color};">난이도 ${d.label}</span>`;
+  document.getElementById("play-word").textContent = w.ko;
+  document.getElementById("play-hint").textContent = `${w.en} · 힌트: ${w.hint}`;
+  err("play-err","");
+  show("play");
+  clearCanvas();
+  renderPalette();
+  timeLeft = d.time; renderTimer();
+  if (timerIv) clearInterval(timerIv);
+  timerIv = setInterval(() => {
+    timeLeft = Math.max(0, timeLeft - 1);
+    renderTimer();
+    if (timeLeft === 0) { clearInterval(timerIv); timerIv = null; submitDrawing(true); }
+  }, 1000);
+}
+function renderTimer() {
+  const el = document.getElementById("play-timer");
+  el.textContent = `⏱ ${Math.floor(timeLeft/60)}:${String(timeLeft%60).padStart(2,"0")}`;
+  el.classList.toggle("danger", timeLeft <= 10);
+}
+
+// ───────── 캔버스 ─────────
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let isDrawing = false;
+function clearCanvas() {
+  ctx.fillStyle = "#FFF"; ctx.fillRect(0, 0, cv.width, cv.height);
+  history.length = 0; strokes = 0;
+}
+function cvPos(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * cv.width, y: (e.clientY - r.top) / r.height * cv.height };
+}
+cv.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  cv.setPointerCapture?.(e.pointerId);
+  history.push(ctx.getImageData(0, 0, cv.width, cv.height));
+  if (history.length > 20) history.shift();
+  isDrawing = true; strokes++;
+  const p = cvPos(e);
+  ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = tool === "pen" ? penColor : "#FFF";
+  ctx.lineWidth = tool === "pen" ? penWidth : 26;
+});
+cv.addEventListener("pointermove", e => {
+  if (!isDrawing) return;
+  e.preventDefault();
+  const p = cvPos(e);
+  ctx.lineTo(p.x, p.y); ctx.stroke();
+});
+["pointerup","pointerleave","pointercancel"].forEach(ev => cv.addEventListener(ev, () => isDrawing = false));
+function undoStroke() {
+  const im = history.pop();
+  if (im) { ctx.putImageData(im, 0, 0); strokes = Math.max(0, strokes - 1); }
+}
+function setTool(t) {
+  tool = t;
+  document.getElementById("btn-pen").classList.toggle("on", t === "pen");
+  document.getElementById("btn-eraser").classList.toggle("on", t === "eraser");
+  renderPalette();
+}
+function renderPalette() {
+  document.getElementById("colors").innerHTML = COLORS.map(c =>
+    `<button class="swatch ${penColor===c&&tool==='pen'?'on':''}" style="background:${c};"
+      onclick="penColor='${c}';setTool('pen')"></button>`).join("");
+  document.getElementById("widths").innerHTML = WIDTHS.map(w =>
+    `<button class="wbtn ${penWidth===w&&tool==='pen'?'on':''}" onclick="penWidth=${w};setTool('pen')">
+      <span class="dot" style="width:${Math.max(4,w*0.9)}px;height:${Math.max(4,w*0.9)}px;"></span></button>`).join("");
+}
+
+// ───────── 채점 ─────────
+async function submitDrawing(auto) {
+  if (submitting) return;
+  if (!auto && strokes === 0) return err("play-err","아직 아무것도 안 그렸어요! 뭐라도 그려 봅시다.");
+  submitting = true;
+  if (timerIv) { clearInterval(timerIv); timerIv = null; }
+  err("play-err","");
+  show("judging");
+  const w = words[round-1];
+  let result;
+  if (auto && strokes === 0) {
+    result = { score: 1, comment: "시간 초과! 다음 라운드에서는 일단 선부터 그어 봐요." };
+  } else {
+    try {
+      const small = document.createElement("canvas");
+      small.width = 400; small.height = 400;
+      const sctx = small.getContext("2d");
+      sctx.fillStyle = "#FFF"; sctx.fillRect(0, 0, 400, 400);
+      sctx.drawImage(cv, 0, 0, 400, 400);
+      const b64 = small.toDataURL("image/png").split(",")[1];
+      if (!judgeReady()) throw new Error("GEMINI_API_KEY가 비어 있어요. 파일 상단 CONFIG를 채워 주세요.");
+      const prompt = `당신은 고등학생 드로잉 퀴즈 게임의 심사위원입니다. 학생은 "${w.ko} (${w.en})"를 그리라는 문제를 받았습니다. 첨부된 그림을 아래 기준으로 1~10점 채점하세요.
+[채점 기준 - 엄격히 적용]
+- 9~10점: 즉시 알아볼 수 있고, 핵심 특징에 더해 사용 맥락(사람·장소·상황)까지 표현됨
+- 7~8점: 핵심 특징이 분명해 바로 알아볼 수 있음
+- 4~6점: 일부 특징이 있어 짐작은 가능한 수준
+- 1~3점: 무엇을 그렸는지 알 수 없음
+[규칙]
+- 글자·문자로 정답 단어나 설명을 적은 부분은 완전히 무시하고 그림 요소만으로 채점. 글자를 지우면 그림이 사실상 없는 경우 1점.
+- 제시어와 무관한 그림이나 부적절한 낙서는 1점.
+- 그림 실력(선의 매끄러움, 미적 완성도)은 평가하지 않음. 오직 '대상을 알아볼 수 있는가'만 평가.
+- 같은 수준의 그림에는 항상 같은 점수를 주도록 일관되게 채점.
+comment는 한국어 한 문장, 짧고 유쾌하게, 격려하는 톤으로. 글자로 써서 감점된 경우엔 그 이유를 재치있게 알려 주세요.
+반드시 {"score": 숫자, "comment": "문자열"} 형태의 JSON만 출력하세요.`;
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [
+              { inline_data: { mime_type: "image/png", data: b64 } },
+              { text: prompt },
+            ]}],
+            generationConfig: { response_mime_type: "application/json" },
+          }),
+        }
+      );
+      if (!resp.ok) throw new Error("채점 API 오류 " + resp.status);
+      const data = await resp.json();
+      const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const score = Math.max(1, Math.min(10, Math.round(Number(parsed.score) || 1)));
+      result = { score, comment: String(parsed.comment || ""), timeout: !!auto };
+    } catch (e) {
+      console.error(e);
+      submitting = false;
+      err("play-err", `채점에 실패했어요. (${e?.message || e}) 다시 제출해 보세요.`);
+      show("play");
+      if (timeLeft === 0) timeLeft = 15;
+      renderTimer();
+      timerIv = setInterval(() => {
+        timeLeft = Math.max(0, timeLeft - 1);
+        renderTimer();
+        if (timeLeft === 0) { clearInterval(timerIv); timerIv = null; submitDrawing(true); }
+      }, 1000);
+      return;
+    }
+  }
+  myScores[round] = result;
+  await saveMe();
+  await fetchBoard();
+  renderResult(result);
+  show("result");
+}
+
+// ───────── 결과 ─────────
+function renderResult(res) {
+  const d = diffOf(diff);
+  document.getElementById("res-label").textContent =
+    `ROUND ${round} 점수${res.timeout ? " (⏱ 시간 종료 자동 제출)" : ""}`;
+  document.getElementById("res-score").innerHTML = `${res.score}<span style="font-size:20px;"> /10</span>`;
+  document.getElementById("res-comment").textContent = `"${res.comment}"`;
+  document.getElementById("res-board-title").textContent = `ROUND ${round} 순위`;
+  document.getElementById("res-board").innerHTML = boardHTML(roundRows(round));
+  document.getElementById("btn-next").textContent = round >= d.rounds ? "최종 결과 보기 🏁" : "다음 라운드로 →";
+}
+async function refreshResultBoard() {
+  const b = document.getElementById("res-refresh"); b.textContent = "…";
+  await fetchBoard();
+  document.getElementById("res-board").innerHTML = boardHTML(roundRows(round));
+  b.textContent = "🔄 새로고침";
+}
+async function nextRound() {
+  if (round >= diffOf(diff).rounds) { await fetchBoard(); renderFinal(); show("final"); }
+  else { round++; startRound(); }
+}
+function renderFinal() {
+  const my = Object.values(myScores).reduce((a,b) => a + b.score, 0);
+  document.getElementById("final-my").textContent = solo ? `연습 모드 · 내 누적 점수 : ${my}점` : (sid ? `내 누적 점수 : ${my}점` : "");
+  document.getElementById("final-board").innerHTML = boardHTML(totalRows());
+}
+async function refreshFinalBoard() {
+  const b = document.getElementById("final-refresh"); b.textContent = "…";
+  await fetchBoard(); renderFinal(); b.textContent = "🔄 새로고침";
+}
+
+renderPalette();
+// 설정이 비어 있으면 상단에 안내 배너 표시
+if (!storageReady() || !judgeReady()) {
+  const b = document.createElement("div");
+  b.style.cssText = "background:#FDECEA;border:2px solid #E4572E;border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.5;margin-bottom:14px;";
+  b.innerHTML = "⚠️ <b>설정이 아직 비어 있어요.</b> 이 파일을 열어 상단 CONFIG에 " +
+    (!storageReady() ? "FIREBASE_DB_URL" : "") +
+    (!storageReady() && !judgeReady() ? "과 " : "") +
+    (!judgeReady() ? "GEMINI_API_KEY" : "") +
+    "를 채운 뒤 다시 업로드해 주세요. FIREBASE 없이는 순위 저장이, GEMINI 키 없이는 AI 채점이 동작하지 않습니다.";
+  document.getElementById("wrap").prepend(b);
+  document.getElementById("solo-offer").classList.remove("hidden");
+}
+</script>
+</body>
+</html>
